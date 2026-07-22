@@ -1,0 +1,15 @@
+# Real data sources — never commit these
+*.db
+*.sqlite
+*.sqlite3
+*.xlsx
+*.xls
+!data/bootstrap.json
+
+# Python
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shopee Executive BI Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root{
+    --bg:#0c1016; --surface:#121821; --surface-2:#171e29; --surface-3:#1d2532;
+    --border:#293241; --border-soft:#202938;
+    --text:#eef2f6; --muted:#9aa5b5; --faint:#687385;
+    --accent:#f1592a; --blue:#4e8fe0; --teal:#29c7a5; --gold:#f0b429;
+    --rose:#e87ba4; --violet:#9b7de0; --danger:#f2545b;
+    --radius:8px; --font-display:"Sora",sans-serif; --font-body:"Inter",sans-serif; --font-mono:"IBM Plex Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px;line-height:1.45}
+  button,input,select{font:inherit}
+  .app{min-height:100vh;display:grid;grid-template-columns:240px minmax(0,1fr)}
+  .sidebar{background:var(--surface);border-right:1px solid var(--border);height:100vh;position:sticky;top:0;overflow:auto}
+  .brand{padding:18px 16px 14px;border-bottom:1px solid var(--border-soft)}
+  .brand-title{font-family:var(--font-display);font-size:16px;font-weight:700;display:flex;align-items:center;gap:9px}
+  .brand-dot{width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px rgba(241,89,42,.14)}
+  .brand-sub{font-family:var(--font-mono);font-size:11px;color:var(--faint);margin-top:4px;margin-left:18px}
+  .nav{padding:10px}
+  .nav-group{padding:14px 10px 6px;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint)}
+  .nav-item{display:flex;gap:10px;align-items:center;width:100%;border:0;background:transparent;color:var(--muted);text-align:left;padding:8px 10px;border-radius:var(--radius);cursor:pointer}
+  .nav-item:hover{background:var(--surface-2);color:var(--text)}
+  .nav-item.active{background:rgba(241,89,42,.14);color:var(--accent)}
+  .nav-num{font-family:var(--font-mono);font-size:10px;width:22px;height:22px;display:grid;place-items:center;background:var(--surface-2);border-radius:6px;color:var(--faint)}
+  .nav-item.active .nav-num{background:var(--accent);color:#190a04}
+  .main{min-width:0}
+  .topbar{position:sticky;top:0;z-index:5;background:rgba(12,16,22,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);padding:14px 24px}
+  .top-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .page-title{font-family:var(--font-display);font-size:19px;font-weight:700}
+  .page-sub{color:var(--muted);font-size:12px;margin-top:3px}
+  .db-status{font-family:var(--font-mono);font-size:11px;color:var(--muted);display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
+  .status-dot{width:7px;height:7px;border-radius:50%;background:var(--gold)}
+  .status-dot.ok{background:var(--teal)}
+  .btn{background:var(--surface-2);border:1px solid var(--border);color:var(--muted);padding:7px 11px;border-radius:var(--radius);cursor:pointer;font-family:var(--font-mono);font-size:11px}
+  .btn:hover{border-color:var(--accent);color:var(--text)}
+  .btn-primary{background:var(--accent);border-color:var(--accent);color:#190a04;font-weight:700}
+  .filters{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}
+  .filter-label{font-family:var(--font-mono);font-size:10.5px;color:var(--faint);margin-right:-3px}
+  .filters select,.filters input{background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);padding:7px 8px;min-height:34px;font-family:var(--font-mono);font-size:11.5px;max-width:230px}
+  .ticker-wrap{padding:16px 24px 0}
+  .ticker{display:grid;grid-template-columns:repeat(8,minmax(118px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+  .tick{background:var(--surface);padding:12px}
+  .tick-label{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);margin-bottom:6px}
+  .tick-value{font-family:var(--font-mono);font-size:17px;font-weight:700;color:var(--text);white-space:nowrap}
+  .content{padding:18px 24px 60px}
+  .grid{display:grid;gap:14px}
+  .g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:15px}
+  .card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+  .card-title{font-weight:700;font-size:13px}
+  .card-meta{font-family:var(--font-mono);font-size:10.5px;color:var(--faint)}
+  .chart-box{height:280px;position:relative}
+  .chart-sm{height:230px}
+  .chart-lg{height:330px}
+  .kpi .label{font-size:11px;color:var(--muted);margin-bottom:7px}
+  .kpi .value{font-family:var(--font-mono);font-size:21px;font-weight:700}
+  .kpi .note{font-size:11px;color:var(--faint);margin-top:6px}
+  .good{color:var(--teal)} .bad{color:var(--danger)} .warn{color:var(--gold)}
+  .insights{display:grid;gap:10px;margin-top:14px}
+  .insight{background:var(--surface-2);border:1px solid var(--border-soft);border-radius:var(--radius);padding:11px 12px;color:var(--muted);font-size:12.5px}
+  .insight b{color:var(--text)}
+  .table-wrap{overflow:auto;border:1px solid var(--border);border-radius:var(--radius)}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{position:sticky;top:0;background:var(--surface-2);text-align:left;color:var(--faint);font-size:10px;text-transform:uppercase;letter-spacing:.05em;padding:8px 9px;border-bottom:1px solid var(--border);font-weight:600;white-space:nowrap}
+  td{padding:8px 9px;border-bottom:1px solid var(--border-soft);color:var(--muted);vertical-align:top}
+  tr:hover td{background:rgba(255,255,255,.025)}
+  .num{text-align:right;font-family:var(--font-mono);white-space:nowrap}
+  .pill{display:inline-block;border-radius:999px;padding:2px 8px;font-family:var(--font-mono);font-size:10.5px;background:var(--surface-3);color:var(--muted);white-space:nowrap}
+  .pill-ok{background:rgba(41,199,165,.13);color:var(--teal)}
+  .pill-bad{background:rgba(242,84,91,.13);color:var(--danger)}
+  .pill-warn{background:rgba(240,180,41,.13);color:var(--gold)}
+  .bar-track{height:7px;background:var(--surface-3);border-radius:999px;overflow:hidden;min-width:90px}
+  .bar-fill{height:100%;background:var(--accent);border-radius:999px}
+  .schema-grid{display:grid;grid-template-columns:minmax(180px,260px) minmax(0,1fr);gap:14px}
+  .schema-node{padding:10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface-2);font-family:var(--font-mono);font-size:11px;color:var(--muted);margin-bottom:8px}
+  .schema-node b{color:var(--text);display:block;margin-bottom:4px}
+  .empty{padding:28px 14px;text-align:center;color:var(--faint);font-size:12px}
+  .heatmap{display:grid;gap:3px;overflow:auto}
+  .hm-row{display:grid;grid-template-columns:130px repeat(var(--cols),minmax(58px,1fr));gap:3px;min-width:760px}
+  .hm-label,.hm-cell{border-radius:6px;padding:7px 6px;font-family:var(--font-mono);font-size:10px;text-align:center;color:var(--text)}
+  .hm-label{text-align:left;color:var(--muted);background:transparent}
+  .hm-cell{background:var(--surface-2)}
+  @media(max-width:1180px){.ticker{grid-template-columns:repeat(4,minmax(118px,1fr))}.g4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:860px){.app{grid-template-columns:1fr}.sidebar{height:auto;position:relative}.nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px}.nav-group{grid-column:1/-1}.g2,.g3,.g4{grid-template-columns:1fr}.ticker{grid-template-columns:repeat(2,minmax(118px,1fr))}.topbar{position:relative}.filters select,.filters input{max-width:100%;flex:1 1 150px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-title"><span class="brand-dot"></span>Shopee BI Console</div>
+      <div class="brand-sub">SQLite connected analytics</div>
+      <div class="brand-sub" style="margin-top:2px;color:var(--faint)">Demo data · customer fields anonymized</div>
+    </div>
+    <nav class="nav" id="nav"></nav>
+  </aside>
+  <main class="main">
+    <div class="topbar">
+      <div class="top-row">
+        <div>
+          <div class="page-title" id="pageTitle">Executive Overview</div>
+          <div class="page-sub" id="pageSub">ภาพรวมผู้บริหารจากฐานข้อมูล Shopee จริง</div>
+        </div>
+        <div class="db-status">
+          <span class="status-dot" id="dbDot"></span>
+          <span id="dbText">กำลังเชื่อมต่อ DB</span>
+          <button class="btn btn-primary" id="reloadBtn">Reload DB</button>
+        </div>
+      </div>
+      <div class="filters" id="filters"></div>
+    </div>
+    <div class="ticker-wrap"><div class="ticker" id="ticker"></div></div>
+    <section class="content" id="content">
+      <div class="empty">กำลังโหลดข้อมูลจาก SQLite...</div>
+    </section>
+  </main>
+</div>
+
+<script>
+// Portfolio/GitHub Pages build: data is loaded from a static, pre-anonymized
+// JSON file (see export_static_data.py) instead of a live local API server.
+// This means no personal customer data ever has to leave your machine.
+const STATIC_DATA_URL = "data/bootstrap.json";
+const TABS = [
+  {id:"overview", num:"01", label:"Overview", title:"Executive Overview", sub:"KPI ภาพรวมผู้บริหารและสัญญาณสำคัญ", group:"Core"},
+  {id:"sales", num:"02", label:"Sales", title:"Sales Analytics", sub:"Daily, weekly, monthly, hourly sales and growth", group:"Core"},
+  {id:"product", num:"03", label:"Product", title:"Product Performance", sub:"สินค้า Top/Low, contribution, Pareto, price vs quantity", group:"Core"},
+  {id:"customer", num:"04", label:"Customer", title:"Customer Analysis", sub:"Top customers, repeat, CLV, frequency", group:"Core"},
+  {id:"location", num:"05", label:"Location", title:"Location / Province Analysis", sub:"จังหวัดและพื้นที่ทำรายได้", group:"Core"},
+  {id:"payment", num:"06", label:"Payment", title:"Payment Method Analysis", sub:"Revenue, order share and trend by payment type", group:"Core"},
+  {id:"shipping", num:"07", label:"Shipping", title:"Shipping / Logistics", sub:"Shipping cost, carrier performance and margin pressure", group:"Finance"},
+  {id:"fees", num:"08", label:"Fees", title:"Fees & Profitability", sub:"Commission, transaction, service fee and profit waterfall", group:"Finance"},
+  {id:"discount", num:"09", label:"Discount", title:"Discount / Promotion Analysis", sub:"Voucher, coins, campaign and seller discount impact", group:"Finance"},
+  {id:"cost", num:"10", label:"Cost", title:"Cost & Supplier Analysis", sub:"Product cost, inbound shipping and supplier segmentation", group:"Finance"},
+  {id:"status", num:"11", label:"Order Status", title:"Order Status Analysis", sub:"Completion, cancellation, return and status trend", group:"Ops"},
+  {id:"time", num:"12", label:"Time", title:"Time Intelligence", sub:"YoY, MoM, WoW and rolling average", group:"Ops"},
+  {id:"traffic", num:"13", label:"Traffic", title:"Traffic & Conversion", sub:"Visitors, clicks and conversion segmented by day / hour / buyer type", group:"Ops"},
+  {id:"packing", num:"14", label:"Packing Time", title:"Packing / Fulfillment Speed", sub:"Order-to-pack lead time segmented by day, product and province", group:"Ops"},
+  {id:"advanced", num:"15", label:"Smart Insights", title:"Advanced Insights Layer", sub:"Pattern, anomaly, slow mover and simple forecast", group:"Ops"},
+  {id:"database", num:"16", label:"Database", title:"Database Explorer", sub:"Table viewer, schema, row count, missing values and star schema", group:"System"},
+  {id:"import", num:"17", label:"Import Log", title:"Import Monitoring", sub:"Import history, duplicate detection and status", group:"System"}
+];
+
+const state = {
+  tab:"overview",
+  orders:[],
+  schema:{tables:[], starSchema:{}},
+  importLog:[],
+  meta:{},
+  health:{},
+  charts:{},
+  selectedTable:"sales_data",
+  filters:{from:"", to:"", product:"all", province:"all", payment:"all", status:"all", campaign:"all", sourceDb:"all"},
+  traffic:{hourly:[], daily:[]},
+  packing:[],
+  cost:[],
+  trafficMeta:{}, packingMeta:{}, costMeta:{}
+};
+
+const $ = id => document.getElementById(id);
+const money = new Intl.NumberFormat("th-TH", {style:"currency", currency:"THB", maximumFractionDigits:0});
+const number = new Intl.NumberFormat("th-TH", {maximumFractionDigits:0});
+const decimal = new Intl.NumberFormat("th-TH", {maximumFractionDigits:1});
+const pct = v => `${v >= 0 ? "+" : ""}${decimal.format(v)}%`;
+const fmtMoney = v => money.format(Math.round(Number(v) || 0));
+const fmtNum = v => number.format(Math.round(Number(v) || 0));
+const esc = value => String(value ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]));
+const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const colors = () => ({
+  accent:css("--accent"), blue:css("--blue"), teal:css("--teal"), gold:css("--gold"),
+  rose:css("--rose"), violet:css("--violet"), danger:css("--danger"),
+  text:css("--muted"), grid:css("--border"), faint:css("--faint")
+});
+
+function byDate(a,b){ return String(a.date).localeCompare(String(b.date)); }
+function parseDate(s){ if(!s) return null; const [y,m,d]=s.split("-").map(Number); return new Date(y, m-1, d); }
+function formatDate(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+function dateLabel(s){ return s ? s.slice(5) : "n/a"; }
+function monthKey(s){ return s ? s.slice(0,7) : "Unknown"; }
+function yearKey(s){ return s ? s.slice(0,4) : "Unknown"; }
+function weekKey(s){
+  const d = parseDate(s);
+  if(!d) return "Unknown";
+  const day = (d.getDay() + 6) % 7;
+  d.setDate(d.getDate() - day);
+  return formatDate(d);
+}
+function weekdayIndex(s){ const d=parseDate(s); return d ? d.getDay() : 0; }
+function sum(list, fn){ return list.reduce((acc,row)=>acc + (Number(fn(row)) || 0), 0); }
+function uniq(arr){ return [...new Set(arr.filter(v => v !== null && v !== undefined && String(v).trim() !== ""))]; }
+function uniqCount(list, fn){ return uniq(list.map(fn)).length; }
+function groupSum(list, keyFn, valFn){
+  const out = {};
+  list.forEach(row => {
+    const key = keyFn(row) || "Unknown";
+    out[key] = (out[key] || 0) + (Number(valFn(row)) || 0);
+  });
+  return out;
+}
+function groupCount(list, keyFn){ return groupSum(list, keyFn, () => 1); }
+function sortedEntries(obj, desc=true){ return Object.entries(obj).sort((a,b)=>desc ? b[1]-a[1] : a[1]-b[1]); }
+function activeRows(list){ return list.filter(o => o.status !== "Cancelled"); }
+function completedRows(list){ return list.filter(o => o.status === "Completed"); }
+function netRevenue(o){ return Number(o.netSales) || 0; }
+function totalFees(o){ return Number(o.totalFees) || 0; }
+function shippingCost(o){ return Number(o.shippingCost) || 0; }
+function lineProfit(o){ return Number(o.netProfit) || (netRevenue(o) - totalFees(o) - shippingCost(o)); }
+
+function kpis(list){
+  const active = activeRows(list);
+  const completed = completedRows(list);
+  const totalSales = sum(active, netRevenue);
+  const grossSales = sum(active, o => o.grossSales);
+  const orderCount = uniqCount(list, o => o.id);
+  const activeOrderCount = uniqCount(active, o => o.id);
+  const productsSold = sum(completed, o => Math.max(0, (Number(o.qty)||0) - (Number(o.returnQty)||0)));
+  const feeTotal = sum(active, totalFees);
+  const shippingTotal = sum(active, shippingCost);
+  const discountTotal = sum(active, o => o.discount);
+  const netProfit = sum(active, lineProfit);
+  return {
+    totalSales, grossSales, totalOrders:orderCount, activeOrders:activeOrderCount, productsSold,
+    netProfit, totalFees:feeTotal, discountTotal, shippingTotal,
+    aov:activeOrderCount ? totalSales / activeOrderCount : 0,
+    margin:totalSales ? netProfit / totalSales * 100 : 0
+  };
+}
+
+function filteredOrders(){
+  const f = state.filters;
+  return state.orders.filter(o => {
+    if(f.from && (!o.date || o.date < f.from)) return false;
+    if(f.to && (!o.date || o.date > f.to)) return false;
+    if(f.product !== "all" && o.product !== f.product) return false;
+    if(f.province !== "all" && o.province !== f.province) return false;
+    if(f.payment !== "all" && o.payment !== f.payment) return false;
+    if(f.status !== "all" && o.status !== f.status) return false;
+    if(f.campaign !== "all" && o.campaign !== f.campaign) return false;
+    if(f.sourceDb !== "all" && o.sourceDb !== f.sourceDb) return false;
+    return true;
+  });
+}
+
+const WEEKDAY_ORDER = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+
+function inRange(dateStr){
+  const f = state.filters;
+  if(!dateStr) return true;
+  if(f.from && dateStr < f.from) return false;
+  if(f.to && dateStr > f.to) return false;
+  return true;
+}
+function filteredTraffic(grain){ return state.traffic[grain].filter(r => inRange(r.date)); }
+function filteredPacking(){ return state.packing.filter(r => inRange(r.date)); }
+function filteredCost(){ return state.cost.filter(r => inRange(r.date)); }
+
+function destroyCharts(){
+  Object.values(state.charts).forEach(chart => chart.destroy());
+  state.charts = {};
+}
+
+function makeChart(id, config){
+  const canvas = $(id);
+  if(!canvas) return;
+  if(!window.Chart){
+    canvas.parentElement.innerHTML = '<div class="empty">Chart library ยังโหลดไม่ได้ แต่ข้อมูลตารางและ KPI ใช้งานได้</div>';
+    return;
+  }
+  const c = colors();
+  Chart.defaults.color = c.text;
+  Chart.defaults.borderColor = c.grid;
+  state.charts[id] = new Chart(canvas, config);
+}
+
+function scalesMoney(extra={}){
+  const c = colors();
+  return {
+    x:{ticks:{color:c.faint, font:{family:"IBM Plex Mono", size:10}}, grid:{display:false}},
+    y:{ticks:{color:c.faint, font:{family:"IBM Plex Mono", size:10}, callback:v=>fmtNum(v)}, grid:{color:c.grid}},
+    ...extra
+  };
+}
+
+function chartOptions(extra={}){
+  const c = colors();
+  return {
+    responsive:true,
+    maintainAspectRatio:false,
+    plugins:{
+      legend:{position:"top", align:"end", labels:{color:c.text, boxWidth:10, font:{size:11}}},
+      tooltip:{callbacks:{label:ctx => `${ctx.dataset.label || ""}: ${fmtNum(ctx.raw)}`}}
+    },
+    scales:scalesMoney(),
+    ...extra
+  };
+}
+
+function statCards(cards){
+  return `<div class="grid g${Math.min(4, Math.max(2, cards.length))}">${cards.map(card => `
+    <div class="card kpi">
+      <div class="label">${esc(card.label)}</div>
+      <div class="value ${card.className || ""}">${card.value}</div>
+      ${card.note ? `<div class="note">${card.note}</div>` : ""}
+    </div>`).join("")}</div>`;
+}
+
+function chartCard(title, id, meta="", cls=""){
+  return `<div class="card"><div class="card-head"><span class="card-title">${esc(title)}</span>${meta ? `<span class="card-meta">${esc(meta)}</span>` : ""}</div><div class="chart-box ${cls}"><canvas id="${id}"></canvas></div></div>`;
+}
+
+function table(headers, rows, empty="No data"){
+  if(!rows.length) return `<div class="empty">${esc(empty)}</div>`;
+  return `<div class="table-wrap"><table><thead><tr>${headers.map(h=>`<th class="${h.num ? "num" : ""}">${esc(h.label || h)}</th>`).join("")}</tr></thead><tbody>
+    ${rows.map(row => `<tr>${row.map(cell => {
+      const value = typeof cell === "object" ? cell.value : cell;
+      const cls = typeof cell === "object" && cell.num ? "num" : "";
+      return `<td class="${cls}">${value}</td>`;
+    }).join("")}</tr>`).join("")}
+  </tbody></table></div>`;
+}
+
+function insight(lines){
+  return `<div class="insights">${lines.filter(Boolean).map(line => `<div class="insight">${line}</div>`).join("")}</div>`;
+}
+
+function buildNav(){
+  const groups = {};
+  TABS.forEach(tab => (groups[tab.group] = groups[tab.group] || []).push(tab));
+  $("nav").innerHTML = Object.entries(groups).map(([group, tabs]) =>
+    `<div class="nav-group">${esc(group)}</div>` +
+    tabs.map(tab => `<button class="nav-item ${tab.id===state.tab ? "active" : ""}" data-tab="${tab.id}">
+      <span class="nav-num">${tab.num}</span><span>${esc(tab.label)}</span>
+    </button>`).join("")
+  ).join("");
+  document.querySelectorAll(".nav-item").forEach(btn => {
+    btn.addEventListener("click", () => {
+      state.tab = btn.dataset.tab;
+      renderAll();
+    });
+  });
+}
+
+function buildFilters(){
+  const options = key => uniq(state.orders.map(o => o[key])).sort((a,b)=>String(a).localeCompare(String(b), "th"));
+  const optionHtml = (items, selected) => [`<option value="all">All</option>`]
+    .concat(items.map(v => `<option value="${esc(v)}" ${v===selected ? "selected" : ""}>${esc(v)}</option>`)).join("");
+  const f = state.filters;
+  const dbSources = options("sourceDb");
+  const sourceDbFilter = dbSources.length > 1
+    ? `<span class="filter-label">Source DB</span><select id="fSourceDb">${optionHtml(dbSources, f.sourceDb)}</select>`
+    : "";
+  $("filters").innerHTML = `
+    <span class="filter-label">Date</span><input id="fFrom" type="date" value="${f.from}"><input id="fTo" type="date" value="${f.to}">
+    <span class="filter-label">Product</span><select id="fProduct">${optionHtml(options("product"), f.product)}</select>
+    <span class="filter-label">Province</span><select id="fProvince">${optionHtml(options("province"), f.province)}</select>
+    <span class="filter-label">Payment</span><select id="fPayment">${optionHtml(options("payment"), f.payment)}</select>
+    <span class="filter-label">Status</span><select id="fStatus">${optionHtml(["Completed","Pending","Cancelled","Returned"], f.status)}</select>
+    <span class="filter-label">Campaign</span><select id="fCampaign">${optionHtml(options("campaign"), f.campaign)}</select>
+    ${sourceDbFilter}
+    <button class="btn" id="resetBtn">Reset</button>`;
+  const map = {fFrom:"from", fTo:"to", fProduct:"product", fProvince:"province", fPayment:"payment", fStatus:"status", fCampaign:"campaign", fSourceDb:"sourceDb"};
+  Object.keys(map).forEach(id => $(id) && $(id).addEventListener("change", e => {
+    state.filters[map[id]] = e.target.value;
+    renderAll(false);
+  }));
+  $("resetBtn").addEventListener("click", () => {
+    state.filters = {
+      from:state.meta.dateRange?.from || "",
+      to:state.meta.dateRange?.to || "",
+      product:"all", province:"all", payment:"all", status:"all", campaign:"all", sourceDb:"all"
+    };
+    buildFilters();
+    renderAll(false);
+  });
+}
+
+function renderTicker(){
+  const k = kpis(filteredOrders());
+  const cards = [
+    ["Total Sales", fmtMoney(k.totalSales)],
+    ["Total Orders", fmtNum(k.totalOrders)],
+    ["Products Sold", fmtNum(k.productsSold)],
+    ["Net Profit", fmtMoney(k.netProfit)],
+    ["Total Fees", fmtMoney(k.totalFees)],
+    ["Total Discount", fmtMoney(k.discountTotal)],
+    ["Shipping Cost", fmtMoney(k.shippingTotal)],
+    ["AOV", fmtMoney(k.aov)]
+  ];
+  $("ticker").innerHTML = cards.map(([label,value]) => `<div class="tick"><div class="tick-label">${label}</div><div class="tick-value">${value}</div></div>`).join("");
+}
+
+function dailySeries(list, valueFn=netRevenue){
+  const byDay = groupSum(activeRows(list), o => o.date, valueFn);
+  const days = Object.keys(byDay).filter(Boolean).sort();
+  return {labels:days, values:days.map(d => byDay[d])};
+}
+
+function movingAverage(values, windowSize){
+  return values.map((_, i) => {
+    const start = Math.max(0, i - windowSize + 1);
+    const slice = values.slice(start, i + 1);
+    return slice.reduce((a,b)=>a+b,0) / slice.length;
+  });
+}
+
+function renderOverview(list){
+  const k = kpis(list);
+  const active = activeRows(list);
+  const byDay = dailySeries(list);
+  const byStatus = groupCount(list, o => o.status);
+  const topProduct = sortedEntries(groupSum(active, o => o.product, netRevenue)).slice(0,10);
+  const topProvince = sortedEntries(groupSum(active, o => o.province, netRevenue)).slice(0,10);
+  const bestDay = sortedEntries(groupSum(active, o => o.date, netRevenue))[0];
+  const bestMonth = sortedEntries(groupSum(active, o => monthKey(o.date), netRevenue))[0];
+  $("content").innerHTML = `
+    ${statCards([
+      {label:"Net margin", value:`${decimal.format(k.margin)}%`, className:k.margin >= 20 ? "good" : k.margin >= 10 ? "warn" : "bad", note:"Profit / net sales"},
+      {label:"Active orders", value:fmtNum(k.activeOrders), note:"Excludes cancelled rows"},
+      {label:"Fees load", value:`${decimal.format(k.totalSales ? k.totalFees / k.totalSales * 100 : 0)}%`, note:"Commission + transaction + service"},
+      {label:"Shipping load", value:`${decimal.format(k.totalSales ? k.shippingTotal / k.totalSales * 100 : 0)}%`, note:"Estimated logistics cost"}
+    ])}
+    <div class="grid g2" style="margin-top:14px">
+      ${chartCard("Sales Trend (Daily)", "ovSales", "net revenue")}
+      ${chartCard("Orders by Status", "ovStatus", "share")}
+      ${chartCard("Top Revenue Products", "ovProducts", "top 10", "chart-sm")}
+      ${chartCard("Revenue by Province", "ovProvince", "top 10", "chart-sm")}
+    </div>
+    ${insight([
+      `วันขายดีที่สุดคือ <b>${bestDay ? esc(bestDay[0]) : "n/a"}</b> ทำยอดได้ <b>${bestDay ? fmtMoney(bestDay[1]) : "n/a"}</b>`,
+      `เดือน Peak คือ <b>${bestMonth ? esc(bestMonth[0]) : "n/a"}</b> ด้วยยอดขาย <b>${bestMonth ? fmtMoney(bestMonth[1]) : "n/a"}</b>`,
+      `กำไรสุทธิที่คำนวณได้อยู่ที่ <b>${fmtMoney(k.netProfit)}</b> หลังหักค่าธรรมเนียมและค่าขนส่ง`
+    ])}`;
+  const c = colors();
+  makeChart("ovSales", {type:"line", data:{labels:byDay.labels.map(dateLabel), datasets:[{label:"Net sales", data:byDay.values, borderColor:c.accent, backgroundColor:"rgba(241,89,42,.14)", fill:true, tension:.3, pointRadius:0}]}, options:chartOptions()});
+  makeChart("ovStatus", {type:"doughnut", data:{labels:["Completed","Pending","Cancelled","Returned"], datasets:[{data:["Completed","Pending","Cancelled","Returned"].map(s=>byStatus[s]||0), backgroundColor:[c.teal,c.gold,c.danger,c.blue], borderColor:css("--surface"), borderWidth:2}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:"bottom", labels:{color:c.text, boxWidth:10}}}}});
+  makeChart("ovProducts", {type:"bar", data:{labels:topProduct.map(x=>x[0]), datasets:[{label:"Revenue", data:topProduct.map(x=>x[1]), backgroundColor:c.accent, borderRadius:5}]}, options:chartOptions({indexAxis:"y"})});
+  makeChart("ovProvince", {type:"bar", data:{labels:topProvince.map(x=>x[0]), datasets:[{label:"Revenue", data:topProvince.map(x=>x[1]), backgroundColor:c.blue, borderRadius:5}]}, options:chartOptions({indexAxis:"y"})});
+}
+
+function renderSales(list){
+  const active = activeRows(list);
+  const byDay = dailySeries(list);
+  const ma7 = movingAverage(byDay.values, 7);
+  const ma30 = movingAverage(byDay.values, 30);
+  const byMonth = sortedEntries(groupSum(active, o => monthKey(o.date), netRevenue), false);
+  const byWeek = sortedEntries(groupSum(active, o => weekKey(o.date), netRevenue), false);
+  const byHour = Array.from({length:24}, (_,h)=>sum(active.filter(o=>o.hour===h), netRevenue));
+  const cumulative = byDay.values.reduce((arr, v) => { arr.push((arr.at(-1)||0)+v); return arr; }, []);
+  const first = byDay.values.slice(0, Math.floor(byDay.values.length/2)).reduce((a,b)=>a+b,0);
+  const second = byDay.values.slice(Math.floor(byDay.values.length/2)).reduce((a,b)=>a+b,0);
+  const growth = first ? (second-first)/first*100 : 0;
+  const bestDay = sortedEntries(groupSum(active, o => o.date, netRevenue))[0];
+  $("content").innerHTML = `
+    ${statCards([
+      {label:"Daily sales", value:fmtMoney(sum(active, netRevenue) / Math.max(1, byDay.labels.length)), note:"Average by active selling day"},
+      {label:"Weekly sales", value:fmtMoney(sum(active, netRevenue) / Math.max(1, byWeek.length)), note:"Average by week"},
+      {label:"Monthly sales", value:fmtMoney(sum(active, netRevenue) / Math.max(1, byMonth.length)), note:"Average by month"},
+      {label:"Sales growth", value:pct(growth), className:growth>=0?"good":"bad", note:"First half vs second half in filter"}
+    ])}
+    <div class="grid g2" style="margin-top:14px">
+      ${chartCard("Sales Trend + Moving Average", "salesTrend", "7D / 30D")}
+      ${chartCard("Monthly Sales", "salesMonthly", "compare month")}
+      ${chartCard("Cumulative Sales", "salesCumulative", "area")}
+      ${chartCard("Hourly Sales", "salesHourly", "order hour")}
+    </div>
+    ${insight([
+      `วันขายดีที่สุดในช่วงนี้คือ <b>${bestDay ? esc(bestDay[0]) : "n/a"}</b> ด้วยยอด <b>${bestDay ? fmtMoney(bestDay[1]) : "n/a"}</b>`,
+      growth >= 0 ? `แนวโน้มครึ่งหลังโตขึ้น <b>${pct(growth)}</b> จัดเป็น positive momentum` : `ยอดครึ่งหลังลดลง <b>${pct(growth)}</b> ควรเจาะสินค้า/แคมเปญที่ดรอป`
+    ])}`;
+  const c = colors();
+  makeChart("salesTrend", {type:"line", data:{labels:byDay.labels.map(dateLabel), datasets:[
+    {label:"Daily", data:byDay.values, borderColor:c.faint, pointRadius:0, tension:.2},
+    {label:"7D avg", data:ma7, borderColor:c.accent, pointRadius:0, tension:.25, borderWidth:2},
+    {label:"30D avg", data:ma30, borderColor:c.teal, pointRadius:0, tension:.25, borderWidth:2}
+  ]}, options:chartOptions()});
+  makeChart("salesMonthly", {type:"bar", data:{labels:byMonth.map(x=>x[0]), datasets:[{label:"Revenue", data:byMonth.map(x=>x[1]), backgroundColor:c.accent, borderRadius:5}]}, options:chartOptions()});
+  makeChart("salesCumulative", {type:"line", data:{labels:byDay.labels.map(dateLabel), datasets:[{label:"Cumulative", data:cumulative, borderColor:c.blue, backgroundColor:"rgba(78,143,224,.14)", fill:true, pointRadius:0, tension:.25}]}, options:chartOptions()});
+  makeChart("salesHourly", {type:"bar", data:{labels:Array.from({length:24},(_,h)=>`${h}:00`), datasets:[{label:"Revenue", data:byHour, backgroundColor:c.gold, borderRadius:5}]}, options:chartOptions()});
+}
+
+function renderProduct(list){
+  const active = activeRows(list);
+  const revByProduct = groupSum(active, o => o.product, netRevenue);
+  const qtyByProduct = groupSum(active, o => o.product, o => o.qty);
+  const rowsByProduct = groupCount(active, o => o.product);
+  const topRevenue = sortedEntries(revByProduct).slice(0,10);
+  const topQty = sortedEntries(qtyByProduct).slice(0,10);
+  const low = sortedEntries(revByProduct, false).slice(0,10);
+  const totalRev = sum(active, netRevenue);
+  let cum = 0;
+  const pareto = sortedEntries(revByProduct).map(([name,value]) => {
+    cum += value;
+    return [name, value, totalRev ? cum/totalRev*100 : 0];
+  });
+  const tableRows = sortedEntries(revByProduct).slice(0,50).map(([name,revenue]) => {
+    const qty = qtyByProduct[name] || 0;
+    const avg = qty ? revenue / qty : 0;
+    const share = totalRev ? revenue / totalRev * 100 : 0;
+    return [esc(name), {value:fmtNum(qty), num:true}, {value:fmtMoney(avg), num:true}, {value:fmtMoney(revenue), num:true}, {value:`<div class="bar-track"><div class="bar-fill" style="width:${Math.min(100, share)}%"></div></div> ${decimal.format(share)}%`, num:true}];
+  });
+  $("content").innerHTML = `
+    ${statCards([
+      {label:"Top revenue product", value:topRevenue[0] ? esc(topRevenue[0][0]) : "n/a", note:topRevenue[0] ? fmtMoney(topRevenue[0][1]) : ""},
+      {label:"Top quantity product", value:topQty[0] ? esc(topQty[0][0]) : "n/a", note:topQty[0] ? `${fmtNum(topQty[0][1])} units` : ""},
+      {label:"Low performing products", value:fmtNum(low.length), note:"Bottom revenue products in selected range"}
+    ])}
+    <div class="grid g2" style="margin-top:14px">
+      ${chartCard("Top 10 Revenue Products", "prodRevenue", "ranking")}
+      ${chartCard("Pareto Chart (80/20)", "prodPareto", "revenue contribution")}
+      ${chartCard("Top Quantity Products", "prodQty", "units sold")}
+      ${chartCard("Price vs Quantity", "prodScatter", "average price vs quantity")}
+    </div>
+    <div class="card" style="margin-top:14px"><div class="card-head"><span class="card-title">Revenue per Product</span><span class="card-meta">top 50</span></div>
+      ${table([{label:"Product"},{label:"Quantity",num:true},{label:"Avg price",num:true},{label:"Revenue",num:true},{label:"Contribution",num:true}], tableRows, "No product data")}
+    </div>`;
+  const c = colors();
+  makeChart("prodRevenue", {type:"bar", data:{labels:topRevenue.map(x=>x[0]), datasets:[{label:"Revenue", data:topRevenue.map(x=>x[1]), backgroundColor:c.accent, borderRadius:5}]}, options:chartOptions({indexAxis:"y"})});
+  makeChart("prodQty", {type:"bar", data:{labels:topQty.map(x=>x[0]), datasets:[{label:"Quantity", data:topQty.map(x=>x[1]), backgroundColor:c.teal, borderRadius:5}]}, options:chartOptions({indexAxis:"y"})});
+  makeChart("prodPareto", {type:"bar", data:{labels:pareto.slice(0,20).map(x=>x[0]), datasets:[
+    {type:"bar", label:"Revenue", data:pareto.slice(0,20).map(x=>x[1]), backgroundColor:c.blue, borderRadius:4, yAxisID:"y"},
+    {type:"line", label:"Cumulative %", data:pareto.slice(0,20).map(x=>x[2]), borderColor:c.gold, pointRadius:2, yAxisID:"y1"}
+  ]}, options:chartOptions({scales:{...scalesMoney(), y1:{position:"right", min:0, max:100, grid:{display:false}, ticks:{color:c.faint, callback:v=>`${v}%`}}}})});
+  const scatter = Object.keys(revByProduct).map(name => ({x:(revByProduct[name] || 0) / Math.max(1, qtyByProduct[name] || 0), y:qtyByProduct[name] || 0, product:name, rows:rowsByProduct[name] || 0}));
+  makeChart("prodScatter", {type:"scatter", data:{datasets:[{label:"Product", data:scatter, backgroundColor:c.violet}]}, options:chartOptions({plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>`${ctx.raw.product}: ${fmtMoney(ctx.raw.x)} avg, ${fmtNum(ctx.raw.y)} units`}}}})});
+}
+
+function renderCustomer(list){
+  const active = activeRows(list);
+  const revenueByCustomer = groupSum(active, o => o.customer, netRevenue);
+  const ordersByCustomer = {};
+  active.forEach(o => {
+    ordersByCustomer[o.customer] = ordersByCustomer[o.customer] || new Set();
+    ordersByCustomer[o.customer].add(o.id);
+  });
+  const orderCounts = Object.fromEntries(Object.entries(ordersByCustomer).map(([k,set]) => [k,set.size]));
+  const sorted = sortedEntries(revenueByCustomer).slice(0,20);
+  const customers = Object.keys(revenueByCustomer).length;
+  const repeat = Object.values(orderCounts).filter(v => v > 1).length;
+  const clv = customers ? sum(active, netRevenue) / customers : 0;
+  const avgFreq = customers ? Object.values(orderCounts).reduce((a,b)=>a+b,0) / customers : 0;
+  $("content").innerHTML = `
+    ${statCards([
+      {label:"Top customers", value:sorted[0] ? esc(sorted[0][0]) : "n/a", note:sorted[0] ? fmtMoney(sorted[0][1]) : ""},
+      {label:"Repeat customers", value:`${fmtNum(repeat)} (${customers ? decimal.format(repeat/customers*100) : 0}%)`, note:"2+ orders"},
+      {label:"CLV", value:fmtMoney(clv), note:"Revenue / customer"},
+      {label:"Avg orders / customer", value:decimal.format(avgFreq), note:"Customer frequency"}
+    ])}
+    <div class="grid g2" style="margin-top:14px">
+      ${chartCard("Customer Ranking", "custRank", "top 20")}
+      ${chartCard("New vs Returning", "custRepeat", "customer split")}
+    </div>
+    <div class="card" style="margin-top:14px"><div class="card-head"><span class="card-title">Top Customers</span></div>
+      ${table([{label:"Customer"},{label:"Orders",num:true},{label:"Spend",num:true},{label:"Frequency",num:true}], sorted.map(([name,value]) => [esc(name), {value:fmtNum(orderCounts[name] || 0), num:true}, {value:fmtMoney(value), num:true}, {value:`${decimal.format(orderCounts[name] || 0)}x`, num:true}]))}
+    </div>`;
+  const c = colors();
+  makeChart("custRank", {type:"bar", data:{labels:sorted.map(x=>x[0]), datasets:[{label:"Spend", data:sorted.map(x=>x[1]), backgroundColor:c.accent, borderRadius:5}]}, options:chartOptions({indexAxis:"y"})});
+  makeChart("custRepeat", {type:"doughnut", data:{labels:["New","Returning"], datasets:[{data:[Math.max(0, customers-repeat), repeat], backgroundColor:[c.blue,c.teal], borderColor:css("--surface"), borderWidth:2}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:"bottom", labels:{color:c.text, boxWidth:10}}}}});
+}
+
+function renderLocation(list){
+  const active = activeRows(list);
+  const revByProvince = groupSum(active, o => o.province, netRevenue);
+  const ordersByProvince = {};
+  active.forEach(o => {
+    ordersByProvince[o.province] = ordersByProvince[o.province] || new Set();
+    ordersByProvince[o.province].add(o.id);
+  });
+  const sorted = sortedEntries(revByProvince);
+  const months = sortedEntries(groupSum(active, o => monthKey(o.date), netRevenue), false).map(x=>x[0]).slice(-12);
+  const topProv = sorted.slice(0,10).map(x=>x[0]);
+  const maxCell = Math.max(1, ...topProv.flatMap(p => months.map(m => sum(active.filter(o=>o.province===p && monthKey(o.date)===m), netRevenue))));
+  const heat = `<div class="heatmap" style="--cols:${months.length}">
+    <div class="hm-row"><div class="hm-label"></div>${months.map(m=>`<div class="hm-label" style="text-align:center">${esc(m)}</div>`).join("")}</div>
+    ${topProv.map(p => `<div class="hm-row"><div class="hm-label">${esc(p)}</div>${months.map(m => {
+      const v = sum(active.filter(o=>o.province===p && monthKey(o.date)===m), netRevenue);
+      const alpha = .12 + .76 * (v / maxCell);
+      return `<div class="hm-cell" style="background:rgba(241,89,42,${alpha})">${v ? fmtNum(v) : ""}</div>`;
+    }).join("")}</div>`).join("")}</div>`;
+  const top = sorted[0], low = sorted.at(-1);
+  $("content").innerHTML = `
+    ${statCards([
+      {label:"Top province", value:top ? esc(top[0]) : "n/a", note:top ? fmtMoney(top[1]) : ""},
+      {label:"Revenue by region", value:fmtNum(sorted.length), note:"Active provinces"},
+      {label:"Orders by region", value:fmtNum(Object.values(ordersByProvince).reduce((a,s)=>a+s.size,0)), note:"Unique orders"}
+    ])}
+    <div class="grid g2" style="margin-top:14px">
+      ${chartCard("Bar Ranking Province", "locRevenue", "revenue")}
+      <div class="card"><div class="card-head"><span class="card-title">Heatmap จังหวัด</span><span class="card-meta">top 10 x last 12 months</span></div>${heat}</div>
+    </div>
+    ${insight([
+      `จังหวัดทำเงินสูงสุดคือ <b>${top ? esc(top[0]) : "n/a"}</b> ยอดขาย <b>${top ? fmtMoney(top[1]) : "n/a"}</b>`,
+      `จังหวัดที่ยอดต่ำสุดในช่วง filter คือ <b>${low ? esc(low[0]) : "n/a"}</b> ควรดู traffic, promotion และ fulfillment เพิ่ม`
+    ])}`;
+  const c = colors();
+  makeChart("locRevenue", {type:"bar", data:{labels:sorted.slice(0,20).map(x=>x[0]), datasets:[{label:"Revenue", data:sorted.slice(0,20).map(x=>x[1]), backgroundColor:c.blue, borderRadius:5}]}, options:chartOptions({indexAxis:"y"})});
+}
+
+function renderPayment(list){
+  const active = activeRows(list);
+  const revByPayment = groupSum(active, o => o.payment, netRevenue);
+  const ordersByPayment = groupCount(list, o => o.payment);
+  const methods = Object.keys({...revByPayment, ...ordersByPayment}).sort();
+  const months = sortedEntries(groupSum(active, o => monthKey(o.date), netRevenue), false).map(x=>x[0]).slice(-12);
+  $("content").innerHTML = `
+    ${statCards(methods.slice(0,4).map(m => ({label:m, value:fmtMoney(revByPayment[m] || 0), note:`${fmtNum(ordersByPayment[m] || 0)} orders`})))}
+    <div class="grid g2" style="margin-top:14px">
+      ${chartCard("Order Share %", "payPie", "by payment type")}
+      ${chartCard("Revenue per Payment Type", "payBar", "revenue")}
+      ${chartCard("Trend per Payment Method", "payTrend", "last 12 months")}
+      <div class="card"><div class="card-head"><span class="card-title">Payment Breakdown</span></div>
+        ${table([{label:"Payment"},{label:"Orders",num:true},{label:"Order share",num:true},{label:"Revenue",num:true}], methods.map(m => [esc(m), {value:fmtNum(ordersByPayment[m]||0), num:true}, {value:`${decimal.format((ordersByPayment[m]||0)/Math.max(1,list.length)*100)}%`, num:true}, {value:fmtMoney(revByPayment[m]||0), num:true}]))}
+      </div>
+    </div>`;
+  const c = colors();
+  makeChart("payPie", {type:"pie", data:{labels:methods, datasets:[{data:methods.map(m=>ordersByPayment[m]||0), backgroundColor:[c.accent,c.blue,c.teal,c.gold,c.violet,c.rose], borderColor:css("--surface"), borderWidth:2}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:"bottom", labels:{color:c.text, boxWidth:10}}}}});
+  makeChart("payBar", {type:"bar", data:{labels:methods, datasets:[{label:"Revenue", data:methods.map(m=>revByPayment[m]||0), backgroundColor:c.accent, borderRadius:5}]}, options:chartOptions()});
+  makeChart("payTrend", {type:"line", data:{labels:months, datasets:methods.slice(0,5).map((m,i)=>({label:m, data:months.map(month => sum(active.filter(o=>o.payment===m && monthKey(o.date)===month), netRevenue)), borderColor:[c.accent,c.blue,c.teal,c.gold,c.violet][i], pointRadius:0, tension:.25}))}, options:chartOptions()});
+}
+
+function renderShipping(list){
+  const active = activeRows(list);
+  const k = kpis(list);
+  const byMethod = groupSum(active, o => o.shippingMethod, shippingCost);
+  const orderByMethod = groupCount(active, o => o.shippingMethod);
+  const months = sortedEntries(groupSum(active, o => monthKey(o.date), netRevenue), false).map(x=>x[0]);
+  const share = months.map(m => {
+    const rows = active.filter(o => monthKey(o.date) === m);
+    const rev = sum(rows, netRevenue);
+    return rev ? sum(rows, shippingCost) / rev * 100 : 0;
+  });
+  const sorted = sortedEntries(byMethod);
+  $("content").innerHTML = `
+    ${statCards([
+      {label:"Shipping cost total", value:fmtMoney(k.shippingTotal), note:"Estimated shipping - subsidy"},
+      {label:"Average shipping cost", value:fmtMoney(k.shippingTotal / Math.max(1,k.activeOrders)), note:"Per active order"},
+      {label:"Shipping / revenue", value:`${decimal.format(k.totalSales ? k.shippingTotal/k.totalSales*100 : 0)}%`, className:k.totalSales && k.shippingTotal/k.totalSales>.2 ? "bad" : "good", note:"Margin pressure"},
+      {label:"Carrier methods", value:fmtNum(sorted.length), note:"Shipping method count"}
+    ])}
+    <div class="grid g2" style="margin-top:14px">
+      ${chartCard("Carrier Performance", "shipMethod", "total cost")}
+      ${chartCard("Shipping Cost % of Revenue", "shipShare", "monthly")}
+    </div>
+    ${insight([
+      k.totalSales && k.shippingTotal/k.totalSales>.2 ? `ค่าขนส่งกิน margin สูงที่ <b>${decimal.format(k.shippingTotal/k.totalSales*100)}%</b> ของยอดขาย ควรต่อรอง carrier หรือปรับ subsidy` : `ค่าขนส่งอยู่ในระดับควบคุมได้ที่ <b>${decimal.format(k.totalSales ? k.shippingTotal/k.totalSales*100 : 0)}%</b> ของยอดขาย`,
+      `วิธีส่งที่แพงสุดคือ <b>${sorted[0] ? esc(sorted[0][0]) : "n/a"}</b> ด้วยต้นทุนรวม <b>${sorted[0] ? fmtMoney(sorted[0][1]) : "n/a"}</b>`
+    ])}
+    <div class="card" style="margin-top:14px"><div class="card-head"><span class="card-title">Logistics Detail</span></div>
+      ${table([{label:"Shipping method"},{label:"Orders",num:true},{label:"Total cost",num:true},{label:"Avg cost",num:true}], sorted.map(([m,v]) => [esc(m), {value:fmtNum(orderByMethod[m]||0), num:true}, {value:fmtMoney(v), num:true}, {value:fmtMoney(v/Math.max(1, orderByMethod[m]||0)), num:true}]))}
+    </div>`;
+  const c = colors();
+  makeChart("shipMethod", {type:"bar", data:{labels:sorted.map(x=>x[0]), datasets:[{label:"Cost", data:sorted.map(x=>x[1]), backgroundColor:c.gold, borderRadius:5}]}, options:chartOptions({indexAxis:"y"})});
+  makeChart("shipShare", {type:"line", data:{labels:months, datasets:[{label:"Shipping %", data:share, borderColor:c.rose, backgroundColor:"rgba(232,123,164,.13)", fill:true, tension:.25}]}, options:chartOptions({scales:{...scalesMoney(), y:{ticks:{color:c.faint, callback:v=>`${v}%`}, grid:{color:c.grid}}}})});
+}
+
+function renderFees(list){
+  const active = activeRows(list);
+  const gross = sum(active, o => o.grossSales);
+  const discount = sum(active, o => o.discount);
+  const revenue = sum(active, netRevenue);
+  const commission = sum(active, o => o.commissionFee);
+  const transaction = sum(active, o => o.transactionFee);
+  const service = sum(active, o => o.serviceFee);
+  const shipping = sum(active, shippingCost);
+  const profit = sum(active, lineProfit);
+  const stages = [
+    ["Gross sales", gross],
+    ["Discount", -discount],
+    ["Net sales", revenue],
+    ["Commission", -commission],
+    ["Transaction", -transaction],
+    ["Service", -service],
+    ["Shipping", -shipping],
+    ["Net profit", profit]
+  ];
+  let running = 0;
+  const bases = [], values = [], barColors = [];
+  stages.forEach(([label,value], i) => {
+    if(i === 0 || label === "Net sales" || label === "Net profit"){
+      bases.push(0); values.push(value); running = value; barColors.push(label === "Net profit" ? colors().teal : colors().accent);
+    }else{
+      const next = running + value;
+      bases.push(Math.min(running, next));
+      values.push(Math.abs(value));
+      running = next;
+      barColors.push(colors().rose);
+    }
+  });
+  $("content").innerHTML = `
+    ${statCards([
+      {label:"Total cost", value:fmtMoney(commission+transaction+service+shipping), note:"Fees + shipping"},
+      {label:"Net margin", value:`${decimal.format(revenue ? profit/revenue*100 : 0)}%`, className:profit>=0?"good":"bad", note:"Profit / net sales"},
+      {label:"Profit per order", value:fmtMoney(profit / Math.max(1, uniqCount(active, o=>o.id))), note:"Active unique orders"}
+    ])}
+    <div class="grid g2" style="margin-top:14px">
+      ${chartCard("Waterfall Chart (Revenue to Profit)", "feeWaterfall", "THB")}
+      ${chartCard("Cost Breakdown Pie", "feePie", "fees + shipping")}
+    </div>`;
+  const c = colors();
+  makeChart("feeWaterfall", {type:"bar", data:{labels:stages.map(x=>x[0]), datasets:[
+    {label:"Base", data:bases, backgroundColor:"transparent", stack:"s"},
+    {label:"Value", data:values, backgroundColor:barColors, borderRadius:5, stack:"s"}
+  ]}, options:chartOptions({plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx => fmtMoney(stages[ctx.dataIndex][1])}}}, scales:{...scalesMoney(), x:{ticks:{color:c.faint, maxRotation:45, minRotation:0}, grid:{display:false}}}})});
+  makeChart("feePie", {type:"doughnut", data:{labels:["Commission","Transaction","Service","Shipping"], datasets:[{data:[commission,transaction,service,shipping], backgroundColor:[c.accent,c.blue,c.violet,c.gold], borderColor:css("--surface"), borderWidth:2}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:"bottom", labels:{color:c.text, boxWidth:10}}}}});
+}
+
+function renderDiscount(list){
+  const active = activeRows(list);
+  const seller = sum(active, o => o.sellerDiscount);
+  const platform = sum(active, o => o.platformDiscount);
+  const totalDisc = sum(active, o => o.discount);
+  const byMonth = sortedEntries(groupSum(active, o => monthKey(o.date), netRevenue), false).map(x=>x[0]);
+  const byProductRevenue = groupSum(active, o => o.product, netRevenue);
+  const byProductDiscount = groupSum(active, o => o.product, o => o.discount);
+  const waste = Object.keys(byProductDiscount).map(product => {
+    const rev = byProductRevenue[product] || 0;
+    const disc = byProductDiscount[product] || 0;
+    return {product, rev, disc, ratio:rev ? disc / rev * 100 : 0};
+  }).filter(x => x.disc > 0).sort((a,b)=>b.ratio-a.ratio).slice(0,15);
+  $("content").innerHTML = `
+    ${statCards([
+      {label:"Voucher / campaign discount", value:fmtMoney(totalDisc), note:"All detected discount fields"},
+      {label:"Coins discount", value:fmtMoney(sum(active, o => o.platformDiscount)), note:"Platform-side discount bucket"},
+      {label:"Seller discount", value:fmtMoney(seller), note:"Seller-funded fields"},
+      {label:"Discount / revenue", value:`${decimal.format(sum(active, netRevenue) ? totalDisc/sum(active, netRevenue)*100 : 0)}%`, note:"Promotion load"}
+    ])}
+    <div class="grid g2" style="margin-top:14px">
+      ${chartCard("Revenue vs Discount", "discRevenue", "monthly")}
+      ${chartCard("Discount Contribution", "discContribution", "seller vs platform")}
+    </div>
+    ${insight([
+      `Discount รวมคิดเป็น <b>${decimal.format(sum(active, netRevenue) ? totalDisc/sum(active, netRevenue)*100 : 0)}%</b> ของยอดขายสุทธิ`,
+      waste[0] ? `สินค้าที่เสี่ยงใช้ discount แล้วไม่คุ้มที่สุดคือ <b>${esc(waste[0].product)}</b> ส่วนลดต่อยอดขาย <b>${decimal.format(waste[0].ratio)}%</b>` : `ยังไม่พบสินค้าที่มีส่วนลดเสี่ยงสูง`
+    ])}
+    <div class="card" style="margin-top:14px"><div class="card-head"><span class="card-title">Discount ที่อาจเสียเงินเปล่า</span><span class="card-meta">high discount / low revenue</span></div>
+      ${table([{label:"Product"},{label:"Revenue",num:true},{label:"Discount",num:true},{label:"Discount share",num:true}], waste.map(x => [esc(x.product), {value:fmtMoney(x.rev), num:true}, {value:fmtMoney(x.disc), num:true}, {value:`${decimal.format(x.ratio)}%`, num:true}]), "No discount risk detected")}
+    </div>`;
+  const c = colors();
+  makeChart("discRevenue", {type:"bar", data:{labels:byMonth, datasets:[
+    {label:"Net revenue", data:byMonth.map(m=>sum(active.filter(o=>monthKey(o.date)===m), netRevenue)), backgroundColor:c.accent, borderRadius:5},
+    {label:"Discount", data:byMonth.map(m=>sum(active.filter(o=>monthKey(o.date)===m), o=>o.discount)), backgroundColor:c.rose, borderRadius:5}
+  ]}, options:chartOptions()});
+  makeChart("discContribution", {type:"doughnut", data:{labels:["Seller discount","Platform/coins/campaign"], datasets:[{data:[seller,platform], backgroundColor:[c.gold,c.blue], borderColor:css("--surface"), borderWidth:2}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:"bottom", labels:{color:c.text, boxWidth:10}}}}});
+}
+
+function renderCost(){
+  const rows = filteredCost();
+  if(!rows.length){
+    $("content").innerHTML = `<div class="card"><div class="empty">ยังไม่ได้เชื่อมต่อไฟล์ cost.xlsx หรือไม่มีข้อมูลในช่วงวันที่ที่เลือก (ตั้งค่า path ใน MANUAL_COST_SOURCES ของ dashboard_api.py)</div></div>`;
+    return;
+  }
+  const totalCost = sum(rows, r => r.totalCost);
+  const productCost = sum(rows, r => r.costProduct);
+  const shipInCost = sum(rows, r => r.costShippingInbound);
+  const otherCost = sum(rows, r => r.costOther);
+  const bySupplier = groupSum(rows, r => r.supplier, r => r.totalCost);
+  const supplierSorted = sortedEntries(bySupplier);
+  const byProduct = groupSum(rows, r => r.product, r => r.totalCost);
+  const productCountByProduct = groupCount(rows, r => r.product);
+  const productSorted = sortedEntries(byProduct);
+  const months = sortedEntries(groupSum(rows, r => r.month, r => r.totalCost), false).map(x=>x[0]);
+  const monthCost = months.map(m => sum(rows.filter(r=>r.month===m), r=>r.totalCost));
+  const topSupplier = supplierSorted[0];
+  $("content").innerHTML = `
+    ${statCards([
+      {label:"Total cost", value:fmtMoney(totalCost), note:`${fmtNum(rows.length)} purchase entries`},
+      {label:"Avg cost / entry", value:fmtMoney(totalCost / Math.max(1, rows.length)), note:"Across selected range"},
+      {label:"Suppliers", value:fmtNum(supplierSorted.length), note:topSupplier ? `Top: ${esc(topSupplier[0])}` : "n/a"},
+      {label:"Inbound shipping share", value:`${decimal.format(totalCost ? shipInCost/totalCost*100 : 0)}%`, note:"Of total cost"}
+    ])}
+    <div class="grid g2" style="margin-top:14px">
+      ${chartCard("Cost by Supplier", "costSupplier", "total cost")}
+      ${chartCard("Cost Trend by Month", "costMonth", "product + inbound shipping + other")}
+    </div>
+    <div class="grid g2" style="margin-top:14px">
+      ${chartCard("Cost Composition", "costComposition", "product vs shipping-in vs other", "chart-sm")}
+      ${chartCard("Top Products by Cost", "costProduct", "total spend", "chart-sm")}
+    </div>
+    ${insight([
+      topSupplier ? `Supplier ที่ใช้จ่ายเยอะสุดคือ <b>${esc(topSupplier[0])}</b> รวม <b>${fmtMoney(topSupplier[1])}</b> (${decimal.format(totalCost ? topSupplier[1]/totalCost*100 : 0)}% ของต้นทุนทั้งหมด)` : "",
+      `ต้นทุนสินค้า <b>${fmtMoney(productCost)}</b>, ค่าส่งขาเข้า <b>${fmtMoney(shipInCost)}</b>, อื่นๆ <b>${fmtMoney(otherCost)}</b>`
+    ])}
+    <div class="card" style="margin-top:14px"><div class="card-head"><span class="card-title">Cost by Product</span></div>
+      ${table([{label:"Product"},{label:"Purchases",num:true},{label:"Total cost",num:true},{label:"Avg cost",num:true}],
+        productSorted.map(([p,v]) => [esc(p), {value:fmtNum(productCountByProduct[p]||0), num:true}, {value:fmtMoney(v), num:true}, {value:fmtMoney(v/Math.max(1,productCountByProduct[p]||1)), num:true}]))}
+    </div>`;
+  const c = colors();
+  makeChart("costSupplier", {type:"bar", data:{labels:supplierSorted.map(x=>x[0]), datasets:[{label:"Cost", data:supplierSorted.map(x=>x[1]), backgroundColor:c.blue, borderRadius:5}]}, options:chartOptions({indexAxis:"y"})});
+  makeChart("costMonth", {type:"line", data:{labels:months, datasets:[{label:"Total cost", data:monthCost, borderColor:c.accent, backgroundColor:"rgba(241,89,42,.13)", fill:true, tension:.25}]}, options:chartOptions()});
+  makeChart("costComposition", {type:"doughnut", data:{labels:["Product cost","Inbound shipping","Other"], datasets:[{data:[productCost,shipInCost,otherCost], backgroundColor:[c.accent,c.gold,c.violet], borderColor:css("--surface"), borderWidth:2}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:"bottom", labels:{color:c.text, boxWidth:10}}}}});
+  makeChart("costProduct", {type:"bar", data:{labels:productSorted.slice(0,10).map(x=>x[0]), datasets:[{label:"Cost", data:productSorted.slice(0,10).map(x=>x[1]), backgroundColor:c.teal, borderRadius:5}]}, options:chartOptions({indexAxis:"y", plugins:{legend:{display:false}}})});
+}
+
+function renderTraffic(){
+  const daily = filteredTraffic("daily");
+  const hourly = filteredTraffic("hourly");
+  if(!daily.length && !hourly.length){
+    $("content").innerHTML = `<div class="card"><div class="empty">ยังไม่ได้เชื่อมต่อ traffic.db หรือไม่มีข้อมูลในช่วงวันที่ที่เลือก</div></div>`;
+    return;
+  }
+  const visitors = sum(daily, r => r.visitors) || sum(hourly, r => r.visitors);
+  const clicks = sum(daily, r => r.clicks) || sum(hourly, r => r.clicks);
+  const orders = sum(hourly, r => r.orders);
+  const buyers = sum(daily, r => r.buyers);
+  const newBuyers = sum(daily, r => r.newBuyers);
+  const returningBuyers = sum(daily, r => r.returningBuyers);
+  const convRate = visitors ? orders / visitors * 100 : 0;
+  const dailySorted = [...daily].sort(byDate);
+  const byWeekdayVisitors = groupSum(hourly, r => r.weekday, r => r.visitors);
+  const byWeekdayOrders = groupSum(hourly, r => r.weekday, r => r.orders);
+  const weekdayConv = WEEKDAY_ORDER.map(w => (byWeekdayVisitors[w] ? (byWeekdayOrders[w]||0)/byWeekdayVisitors[w]*100 : 0));
+  const byHourVisitors = {};
+  for(let h=0; h<24; h++) byHourVisitors[h] = 0;
+  hourly.forEach(r => { if(r.hour!=null) byHourVisitors[r.hour] = (byHourVisitors[r.hour]||0) + r.visitors; });
+  $("content").innerHTML = `
+    ${statCards([
+      {label:"Visitors", value:fmtNum(visitors), note:`${fmtNum(daily.length)} days in range`},
+      {label:"Clicks", value:fmtNum(clicks), note:visitors ? `CTR n/a - clicks/visit ${decimal.format(clicks/Math.max(1,visitors))}` : ""},
+      {label:"Conversion rate", value:`${decimal.format(convRate)}%`, className:convRate>=1?"good":"warn", note:"Orders / visitors"},
+      {label:"New vs returning buyers", value:`${fmtNum(newBuyers)} / ${fmtNum(returningBuyers)}`, note:`${fmtNum(buyers)} total buyers`}
+    ])}
+    <div class="grid g2" style="margin-top:14px">
+      ${chartCard("Visitors vs Orders (daily)", "trafDaily", "trend")}
+      ${chartCard("Conversion Rate by Weekday", "trafWeekday", "orders / visitors")}
+    </div>
+    <div class="grid g2" style="margin-top:14px">
+      ${chartCard("Visitors by Hour of Day", "trafHour", "sum across range", "chart-sm")}
+      ${chartCard("New vs Returning Buyers", "trafBuyers", "daily total", "chart-sm")}
+    </div>
+    ${insight([
+      `Conversion rate เฉลี่ยอยู่ที่ <b>${decimal.format(convRate)}%</b>${convRate<1 ? " ซึ่งต่ำกว่าค่าเฉลี่ย e-commerce ทั่วไป ควรตรวจสอบหน้าสินค้าและโปรโมชั่น" : ""}`,
+      buyers ? `สัดส่วนลูกค้าใหม่ <b>${decimal.format(newBuyers/Math.max(1,buyers)*100)}%</b> เทียบกับลูกค้าเดิม <b>${decimal.format(returningBuyers/Math.max(1,buyers)*100)}%</b>` : ""
+    ])}
+    <div class="card" style="margin-top:14px"><div class="card-head"><span class="card-title">Daily Traffic Detail</span></div>
+      ${table([{label:"Date"},{label:"Visitors",num:true},{label:"Clicks",num:true},{label:"New buyers",num:true},{label:"Returning buyers",num:true},{label:"Repeat rate",num:true}],
+        dailySorted.slice(-30).map(r => [esc(r.date), {value:fmtNum(r.visitors), num:true}, {value:fmtNum(r.clicks), num:true}, {value:fmtNum(r.newBuyers), num:true}, {value:fmtNum(r.returningBuyers), num:true}, {value:`${decimal.format(r.repeatRate)}%`, num:true}]))}
+    </div>`;
+  const c = colors();
+  makeChart("trafDaily", {type:"line", data:{labels:dailySorted.map(r=>r.date), datasets:[
+    {label:"Visitors", data:dailySorted.map(r=>r.visitors), borderColor:c.blue, backgroundColor:"rgba(78,143,224,.12)", fill:true, tension:.25, yAxisID:"y"},
+    {label:"Orders", data:dailySorted.map(r=>r.orders), borderColor:c.accent, backgroundColor:"rgba(241,89,42,.12)", fill:true, tension:.25, yAxisID:"y1"}
+  ]}, options:chartOptions({scales:{...scalesMoney(), y1:{position:"right", ticks:{color:c.faint, callback:v=>fmtNum(v)}, grid:{display:false}}}})});
+  makeChart("trafWeekday", {type:"bar", data:{labels:WEEKDAY_ORDER, datasets:[{label:"Conversion %", data:weekdayConv, backgroundColor:c.teal, borderRadius:5}]}, options:chartOptions({plugins:{legend:{display:false}}, scales:{...scalesMoney(), y:{ticks:{color:c.faint, callback:v=>`${v}%`}, grid:{color:c.grid}}}})});
+  makeChart("trafHour", {type:"bar", data:{labels:Object.keys(byHourVisitors).map(h=>`${h}:00`), datasets:[{label:"Visitors", data:Object.values(byHourVisitors), backgroundColor:c.violet, borderRadius:4}]}, options:chartOptions({plugins:{legend:{display:false}}})});
+  makeChart("trafBuyers", {type:"bar", data:{labels:dailySorted.slice(-14).map(r=>r.date), datasets:[
+    {label:"New", data:dailySorted.slice(-14).map(r=>r.newBuyers), backgroundColor:c.gold, borderRadius:4, stack:"b"},
+    {label:"Returning", data:dailySorted.slice(-14).map(r=>r.returningBuyers), backgroundColor:c.blue, borderRadius:4, stack:"b"}
+  ]}, options:chartOptions()});
+}
+
+function leadBucket(v){
+  if(v==null) return "No order match";
+  if(v<1) return "<1 day";
+  if(v<2) return "1-2 days";
+  if(v<3) return "2-3 days";
+  if(v<5) return "3-5 days";
+  return "5+ days";
+}
+const LEAD_BUCKET_ORDER = ["<1 day","1-2 days","2-3 days","3-5 days","5+ days","No order match"];
+
+function renderPacking(){
+  const rows = filteredPacking();
+  if(!rows.length){
+    $("content").innerHTML = `<div class="card"><div class="empty">ยังไม่ได้เชื่อมต่อ packing.db หรือไม่มีข้อมูลในช่วงวันที่ที่เลือก</div></div>`;
+    return;
+  }
+  const matched = rows.filter(r => r.leadDaysFromOrder != null);
+  const avgLead = matched.length ? sum(matched, r=>r.leadDaysFromOrder) / matched.length : 0;
+  const paceRows = rows.filter(r => r.paceMinutes != null && r.paceMinutes < 240);
+  const avgPace = paceRows.length ? sum(paceRows, r=>r.paceMinutes) / paceRows.length : 0;
+  const byWeekday = groupCount(rows, r => r.weekday);
+  const weekdayCounts = WEEKDAY_ORDER.map(w => byWeekday[w] || 0);
+  const months = sortedEntries(groupCount(rows, r => r.date.slice(0,7)), false).map(x=>x[0]);
+  const monthCounts = months.map(m => rows.filter(r=>r.date.startsWith(m)).length);
+  const bucketCounts = groupCount(rows, r => leadBucket(r.leadDaysFromOrder));
+  const slowest = [...matched].sort((a,b)=>b.leadDaysFromOrder-a.leadDaysFromOrder).slice(0,15);
+  $("content").innerHTML = `
+    ${statCards([
+      {label:"Parcels packed", value:fmtNum(rows.length), note:`${fmtNum(matched.length)} matched to an order`},
+      {label:"Avg order \u2192 pack time", value:`${decimal.format(avgLead)} days`, className:avgLead<=1?"good":(avgLead<=2?"warn":"bad"), note:"From order date to packed-photo date"},
+      {label:"Avg pace between parcels", value:`${decimal.format(avgPace)} min`, note:"Gap between consecutive packs, same day"},
+      {label:"Match rate to orders", value:`${decimal.format(rows.length ? matched.length/rows.length*100 : 0)}%`, note:"By tracking number"}
+    ])}
+    <div class="grid g2" style="margin-top:14px">
+      ${chartCard("Order \u2192 Pack Lead Time Segments", "packBucket", "count of parcels")}
+      ${chartCard("Parcels Packed by Weekday", "packWeekday", "count")}
+    </div>
+    <div class="grid g2" style="margin-top:14px">
+      ${chartCard("Parcels Packed Trend by Month", "packMonth", "count", "chart-sm")}
+      ${chartCard("Lead Time Share", "packBucketPie", "share of parcels", "chart-sm")}
+    </div>
+    ${insight([
+      `เวลาเฉลี่ยจากสั่งซื้อถึงแพ็คของอยู่ที่ <b>${decimal.format(avgLead)} วัน</b>${avgLead>2 ? " ซึ่งค่อนข้างช้า ควรตรวจสอบ backlog การแพ็ค" : ""}`,
+      rows.length ? `วันที่แพ็คของเยอะสุดคือ <b>${WEEKDAY_ORDER[weekdayCounts.indexOf(Math.max(...weekdayCounts))]}</b> ด้วย <b>${fmtNum(Math.max(...weekdayCounts))}</b> parcels` : ""
+    ])}
+    <div class="card" style="margin-top:14px"><div class="card-head"><span class="card-title">Slowest Order \u2192 Pack (Top 15)</span></div>
+      ${table([{label:"Tracking"},{label:"Product"},{label:"Province"},{label:"Order date"},{label:"Packed date"},{label:"Lead days",num:true}],
+        slowest.map(r => [esc(r.trackingNumber), esc(r.product||"n/a"), esc(r.province||"n/a"), esc(r.orderDate), esc(r.date), {value:decimal.format(r.leadDaysFromOrder), num:true}]))}
+    </div>`;
+  const c = colors();
+  const bucketLabels = LEAD_BUCKET_ORDER.filter(b => bucketCounts[b]);
+  makeChart("packBucket", {type:"bar", data:{labels:bucketLabels, datasets:[{label:"Parcels", data:bucketLabels.map(b=>bucketCounts[b]||0), backgroundColor:c.accent, borderRadius:5}]}, options:chartOptions({plugins:{legend:{display:false}}})});
+  makeChart("packWeekday", {type:"bar", data:{labels:WEEKDAY_ORDER, datasets:[{label:"Parcels", data:weekdayCounts, backgroundColor:c.teal, borderRadius:5}]}, options:chartOptions({plugins:{legend:{display:false}}})});
+  makeChart("packMonth", {type:"line", data:{labels:months, datasets:[{label:"Parcels", data:monthCounts, borderColor:c.blue, backgroundColor:"rgba(78,143,224,.13)", fill:true, tension:.25}]}, options:chartOptions()});
+  makeChart("packBucketPie", {type:"doughnut", data:{labels:bucketLabels, datasets:[{data:bucketLabels.map(b=>bucketCounts[b]||0), backgroundColor:[c.teal,c.blue,c.gold,c.rose,c.danger,c.faint], borderColor:css("--surface"), borderWidth:2}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:"bottom", labels:{color:c.text, boxWidth:10}}}}});
+}
+
+function renderStatus(list){
+  const counts = groupCount(list, o => o.status);
+  const total = Math.max(1, list.length);
+  const months = sortedEntries(groupCount(list, o => monthKey(o.date)), false).map(x=>x[0]);
+  $("content").innerHTML = `
+    ${statCards([
+      {label:"Completion rate", value:`${decimal.format((counts.Completed||0)/total*100)}%`, className:"good", note:"Completed / total rows"},
+      {label:"Cancellation rate", value:`${decimal.format((counts.Cancelled||0)/total*100)}%`, className:(counts.Cancelled||0)/total>.1?"bad":"good", note:"Cancelled / total rows"},
+      {label:"Return rate", value:`${decimal.format((counts.Returned||0)/total*100)}%`, className:(counts.Returned||0)/total>.05?"warn":"good", note:"Returned / total rows"},
+      {label:"Pending", value:fmtNum(counts.Pending||0), note:"Rows needing follow up"}
+    ])}
+    <div class="grid g2" style="margin-top:14px">
+      ${chartCard("Funnel Chart", "statusFunnel", "order flow")}
+      ${chartCard("Status Pie Chart", "statusPie", "share")}
+      ${chartCard("Trend Status Over Time", "statusTrend", "monthly")}
+      <div class="card"><div class="card-head"><span class="card-title">Status Table</span></div>
+        ${table([{label:"Status"},{label:"Rows",num:true},{label:"Share",num:true}], ["Completed","Pending","Cancelled","Returned"].map(s => [esc(s), {value:fmtNum(counts[s]||0), num:true}, {value:`${decimal.format((counts[s]||0)/total*100)}%`, num:true}]))}
+      </div>
+    </div>`;
+  const c = colors();
+  const statusColors = {Completed:c.teal, Pending:c.gold, Cancelled:c.danger, Returned:c.blue};
+  makeChart("statusFunnel", {type:"bar", data:{labels:["All orders","Completed","Cancelled","Returned"], datasets:[{label:"Rows", data:[list.length, counts.Completed||0, counts.Cancelled||0, counts.Returned||0], backgroundColor:[c.blue,c.teal,c.danger,c.gold], borderRadius:5}]}, options:chartOptions({indexAxis:"y"})});
+  makeChart("statusPie", {type:"pie", data:{labels:["Completed","Pending","Cancelled","Returned"], datasets:[{data:["Completed","Pending","Cancelled","Returned"].map(s=>counts[s]||0), backgroundColor:["Completed","Pending","Cancelled","Returned"].map(s=>statusColors[s]), borderColor:css("--surface"), borderWidth:2}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:"bottom", labels:{color:c.text, boxWidth:10}}}}});
+  makeChart("statusTrend", {type:"bar", data:{labels:months, datasets:["Completed","Pending","Cancelled","Returned"].map(s => ({label:s, data:months.map(m=>list.filter(o=>monthKey(o.date)===m && o.status===s).length), backgroundColor:statusColors[s], stack:"status", borderRadius:3}))}, options:chartOptions({scales:{x:{stacked:true, ticks:{color:c.faint}, grid:{display:false}}, y:{stacked:true, ticks:{color:c.faint}, grid:{color:c.grid}}}})});
+}
+
+function renderTime(list){
+  const active = activeRows(list);
+  const byMonthObj = groupSum(active, o => monthKey(o.date), netRevenue);
+  const months = Object.keys(byMonthObj).sort();
+  const mom = months.map((m,i) => i ? (byMonthObj[m]-byMonthObj[months[i-1]]) / Math.max(1, byMonthObj[months[i-1]]) * 100 : 0);
+  const byYear = sortedEntries(groupSum(active, o => yearKey(o.date), netRevenue), false);
+  const yoyRows = byYear.map(([year,value],i) => {
+    const prev = i ? byYear[i-1][1] : 0;
+    return [year, value, prev ? (value-prev)/prev*100 : 0];
+  });
+  const byWeek = sortedEntries(groupSum(active, o => weekKey(o.date), netRevenue), false);
+  const wow = byWeek.map((x,i) => i ? (x[1]-byWeek[i-1][1]) / Math.max(1, byWeek[i-1][1]) * 100 : 0);
+  const byDay = dailySeries(list);
+  $("content").innerHTML = `
+    ${statCards([
+      {label:"Latest MoM", value:pct(mom.at(-1)||0), className:(mom.at(-1)||0)>=0?"good":"bad", note:"Last month vs previous"},
+      {label:"Latest WoW", value:pct(wow.at(-1)||0), className:(wow.at(-1)||0)>=0?"good":"bad", note:"Last week vs previous"},
+      {label:"Years available", value:fmtNum(byYear.length), note:"YoY possible when 2+ years"},
+      {label:"Rolling window", value:"7D / 30D", note:"Daily net revenue"}
+    ])}
+    <div class="grid g2" style="margin-top:14px">
+      ${chartCard("MoM Growth", "timeMom", "monthly %")}
+      ${chartCard("WoW Growth", "timeWow", "weekly %")}
+      ${chartCard("Rolling Average", "timeRolling", "7D / 30D")}
+      <div class="card"><div class="card-head"><span class="card-title">YoY</span></div>
+        ${table([{label:"Year"},{label:"Sales",num:true},{label:"YoY",num:true}], yoyRows.map(([y,v,g]) => [esc(y), {value:fmtMoney(v), num:true}, {value:pct(g), num:true}]), "Need multiple years")}
+      </div>
+    </div>`;
+  const c = colors();
+  makeChart("timeMom", {type:"bar", data:{labels:months, datasets:[{label:"MoM %", data:mom, backgroundColor:mom.map(v=>v>=0?c.teal:c.danger), borderRadius:5}]}, options:chartOptions({scales:{...scalesMoney(), y:{ticks:{color:c.faint, callback:v=>`${v}%`}, grid:{color:c.grid}}}})});
+  makeChart("timeWow", {type:"bar", data:{labels:byWeek.map(x=>x[0]), datasets:[{label:"WoW %", data:wow, backgroundColor:wow.map(v=>v>=0?c.teal:c.danger), borderRadius:5}]}, options:chartOptions({scales:{...scalesMoney(), y:{ticks:{color:c.faint, callback:v=>`${v}%`}, grid:{color:c.grid}}}})});
+  makeChart("timeRolling", {type:"line", data:{labels:byDay.labels.map(dateLabel), datasets:[
+    {label:"Daily", data:byDay.values, borderColor:c.faint, pointRadius:0, tension:.2},
+    {label:"7D", data:movingAverage(byDay.values,7), borderColor:c.accent, pointRadius:0, tension:.25},
+    {label:"30D", data:movingAverage(byDay.values,30), borderColor:c.teal, pointRadius:0, tension:.25}
+  ]}, options:chartOptions()});
+}
+
+function renderAdvanced(list){
+  const active = activeRows(list).sort(byDate);
+  const byDay = dailySeries(list);
+  const values = byDay.values;
+  const mean = values.length ? values.reduce((a,b)=>a+b,0)/values.length : 0;
+  const sd = Math.sqrt(values.reduce((a,b)=>a+Math.pow(b-mean,2),0)/Math.max(1,values.length));
+  const anomalies = byDay.labels.map((d,i)=>({date:d, value:values[i], z:sd ? (values[i]-mean)/sd : 0})).filter(x => Math.abs(x.z) >= 2).sort((a,b)=>Math.abs(b.z)-Math.abs(a.z)).slice(0,10);
+  const latestDate = byDay.labels.at(-1);
+  const latest = parseDate(latestDate);
+  const slow = Object.entries(groupSum(active, o=>o.product, o=>o.qty)).map(([product,qty]) => {
+    const rows = active.filter(o=>o.product===product);
+    const last = rows.map(o=>o.date).sort().at(-1);
+    const daysSince = latest && last ? Math.round((latest-parseDate(last))/86400000) : 999;
+    return {product, qty, revenue:sum(rows, netRevenue), daysSince};
+  }).sort((a,b)=>b.daysSince-a.daysSince || a.qty-b.qty).slice(0,12);
+  const byPattern = sortedEntries(groupSum(active, o => `${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][weekdayIndex(o.date)]} ${o.hour ?? "n/a"}:00`, netRevenue)).slice(0,5);
+  const last30Avg = values.slice(-30).reduce((a,b)=>a+b,0) / Math.max(1, values.slice(-30).length);
+  const forecastLabels = byDay.labels.slice(-45).map(dateLabel).concat(Array.from({length:30},(_,i)=>`F+${i+1}`));
+  const actual = byDay.values.slice(-45).concat(Array(30).fill(null));
+  const forecast = Array(byDay.values.slice(-45).length).fill(null).concat(Array(30).fill(last30Avg));
+  $("content").innerHTML = `
+    ${statCards([
+      {label:"Best selling pattern", value:byPattern[0] ? esc(byPattern[0][0]) : "n/a", note:byPattern[0] ? fmtMoney(byPattern[0][1]) : ""},
+      {label:"Slow moving products", value:fmtNum(slow.length), note:"Long gap since latest sale"},
+      {label:"Anomaly days", value:fmtNum(anomalies.length), note:"z-score >= 2"},
+      {label:"30D demand forecast", value:fmtMoney(last30Avg*30), note:"Simple run-rate projection"}
+    ])}
+    <div class="grid g2" style="margin-top:14px">
+      ${chartCard("Demand Forecasting", "advForecast", "next 30 days")}
+      ${chartCard("Seasonal Trends", "advSeason", "month of year")}
+    </div>
+    ${insight([
+      byPattern.length ? `Pattern ที่ขายดีที่สุดคือ <b>${esc(byPattern[0][0])}</b> มียอดสะสม <b>${fmtMoney(byPattern[0][1])}</b>` : `ยังไม่มี pattern เพียงพอสำหรับสรุป`,
+      anomalies.length ? `พบ anomaly สูงสุดที่ <b>${esc(anomalies[0].date)}</b> ยอด <b>${fmtMoney(anomalies[0].value)}</b> ควรตรวจ campaign หรือ stock event` : `ไม่พบ anomaly ระดับรุนแรงในช่วงที่เลือก`,
+      slow.length ? `Slow mover อันดับแรกคือ <b>${esc(slow[0].product)}</b> ไม่มี movement ประมาณ <b>${fmtNum(slow[0].daysSince)}</b> วัน` : `ไม่พบ slow mover ชัดเจน`
+    ])}
+    <div class="grid g2" style="margin-top:14px">
+      <div class="card"><div class="card-head"><span class="card-title">Slow Moving Products</span></div>${table([{label:"Product"},{label:"Qty",num:true},{label:"Revenue",num:true},{label:"Days since sale",num:true}], slow.map(x=>[esc(x.product), {value:fmtNum(x.qty), num:true}, {value:fmtMoney(x.revenue), num:true}, {value:fmtNum(x.daysSince), num:true}]))}</div>
+      <div class="card"><div class="card-head"><span class="card-title">Anomaly Detection</span></div>${table([{label:"Date"},{label:"Sales",num:true},{label:"Z-score",num:true}], anomalies.map(x=>[esc(x.date), {value:fmtMoney(x.value), num:true}, {value:decimal.format(x.z), num:true}]), "No anomalies detected")}</div>
+    </div>`;
+  const c = colors();
+  makeChart("advForecast", {type:"line", data:{labels:forecastLabels, datasets:[
+    {label:"Actual", data:actual, borderColor:c.accent, pointRadius:0, tension:.25},
+    {label:"Forecast", data:forecast, borderColor:c.teal, borderDash:[5,5], pointRadius:0, tension:.25}
+  ]}, options:chartOptions()});
+  const season = groupSum(active, o => monthKey(o.date).slice(5), netRevenue);
+  makeChart("advSeason", {type:"bar", data:{labels:Object.keys(season).sort(), datasets:[{label:"Revenue", data:Object.keys(season).sort().map(m=>season[m]), backgroundColor:c.blue, borderRadius:5}]}, options:chartOptions()});
+}
+
+function renderDatabase(){
+  const tables = state.schema.tables || [];
+  const databases = state.schema.databases || [];
+  const multiDb = databases.length > 1;
+  const keyOf = t => t.key || t.name;
+  const selected = tables.find(t => keyOf(t) === state.selectedTable) || tables[0];
+  if(selected) state.selectedTable = keyOf(selected);
+  const salesTables = tables.filter(t => t.name === "sales_data");
+  const star = state.schema.starSchema || {};
+  const dims = star.dimensions || {};
+  $("content").innerHTML = `
+    ${statCards([
+      {label:"Databases", value:fmtNum(databases.length), note:multiDb ? databases.map(d=>esc(d.label)).join(", ") : "SQLite source"},
+      {label:"Tables", value:fmtNum(tables.length), note:"Across all databases"},
+      {label:"Rows in sales_data", value:fmtNum(salesTables.reduce((s,t)=>s+t.rowCount,0)), note:multiDb ? "Summed across databases" : "Fact-like source table"},
+      {label:"DB file(s)", value:esc(state.health.dbFile || "n/a"), note:esc(state.health.modifiedAt || "")}
+    ])}
+    <div class="grid g2" style="margin-top:14px">
+      <div class="card"><div class="card-head"><span class="card-title">STAR SCHEMA (Core Model)</span><span class="card-meta">logical layer</span></div>
+        <div class="schema-grid">
+          <div class="schema-node"><b>fact_sales</b>${(star.fact_sales||[]).map(esc).join("<br>")}</div>
+          <div>${Object.entries(dims).map(([name,cols]) => `<div class="schema-node"><b>${esc(name)}</b>${cols.map(esc).join(", ")}</div>`).join("")}</div>
+        </div>
+      </div>
+      <div class="card"><div class="card-head"><span class="card-title">Table Viewer</span><span class="card-meta">${selected ? fmtNum(selected.rowCount) + " rows" : ""}</span></div>
+        <div class="filters" style="margin:0 0 12px"><span class="filter-label">Table</span><select id="tableSelect">${tables.map(t=>`<option value="${esc(keyOf(t))}" ${keyOf(t)===state.selectedTable?"selected":""}>${esc(multiDb ? `${t.db} \u203a ${t.name}` : t.name)}</option>`).join("")}</select></div>
+        ${selected ? table(Object.keys(selected.sampleRows[0]||{}).slice(0,10).map(k=>({label:k})), (selected.sampleRows||[]).slice(0,12).map(row => Object.keys(row).slice(0,10).map(k=>esc(row[k]))), "No sample rows") : '<div class="empty">No tables</div>'}
+      </div>
+    </div>
+    <div class="card" style="margin-top:14px"><div class="card-head"><span class="card-title">Column Explorer & Missing Values</span><span class="card-meta">${selected ? esc(multiDb ? `${selected.db} \u203a ${selected.name}` : selected.name) : ""}</span></div>
+      ${selected ? table([{label:"Column"},{label:"Type"},{label:"Missing",num:true},{label:"PK",num:true}], selected.columns.map(col => [esc(col.name), esc(col.type || ""), {value:fmtNum(col.missing), num:true}, {value:col.pk ? "Yes" : "", num:true}])) : ""}
+    </div>`;
+  const select = $("tableSelect");
+  if(select) select.addEventListener("change", e => { state.selectedTable = e.target.value; renderPage(false); });
+}
+
+function renderImport(){
+  const logs = state.importLog || [];
+  const duplicates = state.meta.duplicates || [];
+  const byMonth = groupCount(logs, row => row.sale_month || "Unknown");
+  $("content").innerHTML = `
+    ${statCards([
+      {label:"File import history", value:fmtNum(logs.length), note:"sales_import_log"},
+      {label:"Duplicate detection", value:fmtNum(state.meta.duplicateOrderIds || 0), className:(state.meta.duplicateOrderIds || 0) ? "warn" : "good", note:"Repeated order_id rows"},
+      {label:"Import status", value:state.health.ok ? '<span class="pill pill-ok">Connected</span>' : '<span class="pill pill-bad">DB missing</span>', note:esc(state.health.message || "")},
+      {label:"Error logs", value:'<span class="pill">No error table</span>', note:"No dedicated error log table found"}
+    ])}
+    <div class="grid g2" style="margin-top:14px">
+      ${chartCard("Imports by Sale Month", "importMonth", "count")}
+      <div class="card"><div class="card-head"><span class="card-title">Duplicate Detection</span><span class="card-meta">top 30</span></div>
+        ${table([{label:"Order ID"},{label:"Rows",num:true},{label:"Net sales",num:true},{label:"Database(s)"}], duplicates.map(d => [esc(d.order_id), {value:fmtNum(d.row_count), num:true}, {value:fmtMoney(d.net_sales), num:true}, esc((d.sourceDbs||[]).join(", "))]), "No repeated order_id found")}
+      </div>
+    </div>
+    <div class="card" style="margin-top:14px"><div class="card-head"><span class="card-title">File Import History</span></div>
+      ${table([{label:"Database"},{label:"Source file"},{label:"Sale month"},{label:"Period start"},{label:"Period end"},{label:"Imported at"}], logs.map(row => [esc(row.sourceDb), esc(row.source_file), esc(row.sale_month), esc(row.period_start), esc(row.period_end), esc(row.imported_at)]), "No import history")}
+    </div>`;
+  const c = colors();
+  const months = Object.keys(byMonth).sort();
+  makeChart("importMonth", {type:"bar", data:{labels:months, datasets:[{label:"Imports", data:months.map(m=>byMonth[m]), backgroundColor:c.accent, borderRadius:5}]}, options:chartOptions()});
+}
+
+function renderPage(rebuildNav=true){
+  destroyCharts();
+  const tab = TABS.find(t => t.id === state.tab) || TABS[0];
+  $("pageTitle").textContent = tab.title;
+  $("pageSub").textContent = tab.sub;
+  if(rebuildNav) buildNav();
+  const list = filteredOrders();
+  const renderers = {
+    overview:renderOverview, sales:renderSales, product:renderProduct, customer:renderCustomer,
+    location:renderLocation, payment:renderPayment, shipping:renderShipping, fees:renderFees,
+    discount:renderDiscount, cost:renderCost, status:renderStatus, time:renderTime,
+    traffic:renderTraffic, packing:renderPacking, advanced:renderAdvanced,
+    database:renderDatabase, import:renderImport
+  };
+  if(renderers[state.tab]) renderers[state.tab](list);
+}
+
+function renderAll(rebuildNav=true){
+  renderTicker();
+  renderPage(rebuildNav);
+}
+
+async function loadData(){
+  $("dbText").textContent = "Loading SQLite...";
+  $("dbDot").classList.remove("ok");
+  try{
+    const response = await fetch(STATIC_DATA_URL, {cache:"no-store"});
+    if(!response.ok) throw new Error(`Fetch ${STATIC_DATA_URL}: ${response.status}`);
+    const data = await response.json();
+    state.orders = data.orders || [];
+    state.schema = data.schema || {tables:[], starSchema:{}};
+    state.importLog = data.importLog || [];
+    state.meta = data.meta || {};
+    state.health = data.health || {};
+    state.traffic = data.traffic || {hourly:[], daily:[]};
+    state.packing = data.packing || [];
+    state.cost = data.cost || [];
+    state.trafficMeta = data.trafficMeta || {};
+    state.packingMeta = data.packingMeta || {};
+    state.costMeta = data.costMeta || {};
+    if(!state.filters.from) state.filters.from = state.meta.dateRange?.from || "";
+    if(!state.filters.to) state.filters.to = state.meta.dateRange?.to || "";
+    $("dbDot").classList.toggle("ok", !!state.health.ok);
+    $("dbText").textContent = `${state.health.message || "Loaded"} | ${fmtNum(state.meta.orderRows || state.orders.length)} rows`;
+    $("dbText").title = (state.health.databases || []).map(d => `${d.label}: ${d.ok ? "connected" : "missing"} (${d.dbPath})`).join("\n");
+    buildNav();
+    buildFilters();
+    renderAll(false);
+  }catch(err){
+    $("dbText").textContent = "data/bootstrap.json not found";
+    $("content").innerHTML = `<div class="card"><div class="empty">ไม่พบไฟล์ data/bootstrap.json กรุณารัน <code>python export_static_data.py</code> ก่อน แล้วเปิดหน้านี้ผ่าน local web server (เช่น <code>python -m http.server</code>)</div><div class="insight">รายละเอียด: ${esc(err.message)}</div></div>`;
+    $("ticker").innerHTML = "";
+  }
+}
+
+$("reloadBtn").addEventListener("click", loadData);
+loadData();
+</script>
+</body>
+</html>
