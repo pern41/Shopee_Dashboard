@@ -210,6 +210,11 @@ function groupSum(list, keyFn, valFn){
 }
 function groupCount(list, keyFn){ return groupSum(list, keyFn, () => 1); }
 function sortedEntries(obj, desc=true){ return Object.entries(obj).sort((a,b)=>desc ? b[1]-a[1] : a[1]-b[1]); }
+// For time-bucketed data (day/week/month/year keys like "2025-03"): sort chronologically
+// by the key itself, NOT by value. sortedEntries() sorts by value on purpose (rankings like
+// "top product by revenue") -- using it for a time axis puts months/weeks/years in revenue
+// order instead of calendar order, which is wrong for any trend chart.
+function sortedByTimeKey(obj){ return Object.entries(obj).sort((a,b)=>String(a[0]).localeCompare(String(b[0]))); }
 function activeRows(list){ return list.filter(o => o.status !== "Cancelled"); }
 function completedRows(list){ return list.filter(o => o.status === "Completed"); }
 function netRevenue(o){ return Number(o.netSales) || 0; }
@@ -453,8 +458,8 @@ function renderSales(list){
   const byDay = dailySeries(list);
   const ma7 = movingAverage(byDay.values, 7);
   const ma30 = movingAverage(byDay.values, 30);
-  const byMonth = sortedEntries(groupSum(active, o => monthKey(o.date), netRevenue), false);
-  const byWeek = sortedEntries(groupSum(active, o => weekKey(o.date), netRevenue), false);
+  const byMonth = sortedByTimeKey(groupSum(active, o => monthKey(o.date), netRevenue));
+  const byWeek = sortedByTimeKey(groupSum(active, o => weekKey(o.date), netRevenue));
   const byHour = Array.from({length:24}, (_,h)=>sum(active.filter(o=>o.hour===h), netRevenue));
   const cumulative = byDay.values.reduce((arr, v) => { arr.push((arr.at(-1)||0)+v); return arr; }, []);
   const first = byDay.values.slice(0, Math.floor(byDay.values.length/2)).reduce((a,b)=>a+b,0);
@@ -577,7 +582,7 @@ function renderLocation(list){
     ordersByProvince[o.province].add(o.id);
   });
   const sorted = sortedEntries(revByProvince);
-  const months = sortedEntries(groupSum(active, o => monthKey(o.date), netRevenue), false).map(x=>x[0]).slice(-12);
+  const months = sortedByTimeKey(groupSum(active, o => monthKey(o.date), netRevenue)).map(x=>x[0]).slice(-12);
   const topProv = sorted.slice(0,10).map(x=>x[0]);
   const maxCell = Math.max(1, ...topProv.flatMap(p => months.map(m => sum(active.filter(o=>o.province===p && monthKey(o.date)===m), netRevenue))));
   const heat = `<div class="heatmap" style="--cols:${months.length}">
@@ -611,7 +616,7 @@ function renderPayment(list){
   const revByPayment = groupSum(active, o => o.payment, netRevenue);
   const ordersByPayment = groupCount(list, o => o.payment);
   const methods = Object.keys({...revByPayment, ...ordersByPayment}).sort();
-  const months = sortedEntries(groupSum(active, o => monthKey(o.date), netRevenue), false).map(x=>x[0]).slice(-12);
+  const months = sortedByTimeKey(groupSum(active, o => monthKey(o.date), netRevenue)).map(x=>x[0]).slice(-12);
   $("content").innerHTML = `
     ${statCards(methods.slice(0,4).map(m => ({label:m, value:fmtMoney(revByPayment[m] || 0), note:`${fmtNum(ordersByPayment[m] || 0)} orders`})))}
     <div class="grid g2" style="margin-top:14px">
@@ -633,7 +638,7 @@ function renderShipping(list){
   const k = kpis(list);
   const byMethod = groupSum(active, o => o.shippingMethod, shippingCost);
   const orderByMethod = groupCount(active, o => o.shippingMethod);
-  const months = sortedEntries(groupSum(active, o => monthKey(o.date), netRevenue), false).map(x=>x[0]);
+  const months = sortedByTimeKey(groupSum(active, o => monthKey(o.date), netRevenue)).map(x=>x[0]);
   const share = months.map(m => {
     const rows = active.filter(o => monthKey(o.date) === m);
     const rev = sum(rows, netRevenue);
@@ -719,7 +724,7 @@ function renderDiscount(list){
   const seller = sum(active, o => o.sellerDiscount);
   const platform = sum(active, o => o.platformDiscount);
   const totalDisc = sum(active, o => o.discount);
-  const byMonth = sortedEntries(groupSum(active, o => monthKey(o.date), netRevenue), false).map(x=>x[0]);
+  const byMonth = sortedByTimeKey(groupSum(active, o => monthKey(o.date), netRevenue)).map(x=>x[0]);
   const byProductRevenue = groupSum(active, o => o.product, netRevenue);
   const byProductDiscount = groupSum(active, o => o.product, o => o.discount);
   const waste = Object.keys(byProductDiscount).map(product => {
@@ -768,7 +773,7 @@ function renderCost(){
   const byProduct = groupSum(rows, r => r.product, r => r.totalCost);
   const productCountByProduct = groupCount(rows, r => r.product);
   const productSorted = sortedEntries(byProduct);
-  const months = sortedEntries(groupSum(rows, r => r.month, r => r.totalCost), false).map(x=>x[0]);
+  const months = sortedByTimeKey(groupSum(rows, r => r.month, r => r.totalCost)).map(x=>x[0]);
   const monthCost = months.map(m => sum(rows.filter(r=>r.month===m), r=>r.totalCost));
   const topSupplier = supplierSorted[0];
   $("content").innerHTML = `
@@ -880,7 +885,7 @@ function renderPacking(){
   const avgPace = paceRows.length ? sum(paceRows, r=>r.paceMinutes) / paceRows.length : 0;
   const byWeekday = groupCount(rows, r => r.weekday);
   const weekdayCounts = WEEKDAY_ORDER.map(w => byWeekday[w] || 0);
-  const months = sortedEntries(groupCount(rows, r => r.date.slice(0,7)), false).map(x=>x[0]);
+  const months = sortedByTimeKey(groupCount(rows, r => r.date.slice(0,7))).map(x=>x[0]);
   const monthCounts = months.map(m => rows.filter(r=>r.date.startsWith(m)).length);
   const bucketCounts = groupCount(rows, r => leadBucket(r.leadDaysFromOrder));
   const slowest = [...matched].sort((a,b)=>b.leadDaysFromOrder-a.leadDaysFromOrder).slice(0,15);
@@ -918,7 +923,7 @@ function renderPacking(){
 function renderStatus(list){
   const counts = groupCount(list, o => o.status);
   const total = Math.max(1, list.length);
-  const months = sortedEntries(groupCount(list, o => monthKey(o.date)), false).map(x=>x[0]);
+  const months = sortedByTimeKey(groupCount(list, o => monthKey(o.date))).map(x=>x[0]);
   $("content").innerHTML = `
     ${statCards([
       {label:"Completion rate", value:`${decimal.format((counts.Completed||0)/total*100)}%`, className:"good", note:"Completed / total rows"},
@@ -946,12 +951,12 @@ function renderTime(list){
   const byMonthObj = groupSum(active, o => monthKey(o.date), netRevenue);
   const months = Object.keys(byMonthObj).sort();
   const mom = months.map((m,i) => i ? (byMonthObj[m]-byMonthObj[months[i-1]]) / Math.max(1, byMonthObj[months[i-1]]) * 100 : 0);
-  const byYear = sortedEntries(groupSum(active, o => yearKey(o.date), netRevenue), false);
+  const byYear = sortedByTimeKey(groupSum(active, o => yearKey(o.date), netRevenue));
   const yoyRows = byYear.map(([year,value],i) => {
     const prev = i ? byYear[i-1][1] : 0;
     return [year, value, prev ? (value-prev)/prev*100 : 0];
   });
-  const byWeek = sortedEntries(groupSum(active, o => weekKey(o.date), netRevenue), false);
+  const byWeek = sortedByTimeKey(groupSum(active, o => weekKey(o.date), netRevenue));
   const wow = byWeek.map((x,i) => i ? (x[1]-byWeek[i-1][1]) / Math.max(1, byWeek[i-1][1]) * 100 : 0);
   const byDay = dailySeries(list);
   $("content").innerHTML = `
